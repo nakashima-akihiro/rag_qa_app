@@ -33,13 +33,13 @@
 
 ## フェーズ 3: API Routes
 
-- [ ] `POST /api/admin/login` — パスワード認証 → JWT Cookie
-- [ ] `POST /api/admin/logout` — Cookie削除
-- [ ] `GET /api/auth/check` — JWT検証
-- [ ] `GET /api/admin/sources` — ソース一覧
-- [ ] `POST /api/admin/sources` — ソース登録（チャンキング＋Embedding）
-- [ ] `DELETE /api/admin/sources/[id]` — ソース削除
-- [ ] `POST /api/ask` — Q&A（ベクター検索＋Claude）
+- [x] `POST /api/admin/login` — パスワード認証 → JWT Cookie
+- [x] `POST /api/admin/logout` — Cookie削除
+- [x] `GET /api/auth/check` — JWT検証
+- [x] `GET /api/admin/sources` — ソース一覧
+- [x] `POST /api/admin/sources` — ソース登録（チャンキング＋Embedding）
+- [x] `DELETE /api/admin/sources/[id]` — ソース削除
+- [x] `POST /api/ask` — Q&A（ベクター検索＋Claude）
 
 ---
 
