@@ -23,11 +23,11 @@
 
 ## フェーズ 2: バックエンド（lib/）
 
-- [ ] `lib/supabase.ts` — Supabaseクライアント（anon/service role）
-- [ ] `lib/chunking.ts` — テキストチャンキング（500文字、50文字オーバーラップ）
-- [ ] `lib/embedding.ts` — OpenAI Embedding生成
-- [ ] `lib/claude.ts` — Claude API呼び出し（回答生成）
-- [ ] `lib/auth.ts` — JWT生成・検証（jose）
+- [x] `lib/supabase.ts` — Supabaseクライアント（anon/service role）
+- [x] `lib/chunking.ts` — テキストチャンキング（500文字、50文字オーバーラップ）
+- [x] `lib/embedding.ts` — OpenAI Embedding生成
+- [x] `lib/claude.ts` — Claude API呼び出し（回答生成）
+- [x] `lib/auth.ts` — JWT生成・検証（jose）
 
 ---
 
