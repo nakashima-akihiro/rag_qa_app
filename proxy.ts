@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   // ログインページ自体は保護しない
   if (req.nextUrl.pathname === '/admin/login') {
     return NextResponse.next()

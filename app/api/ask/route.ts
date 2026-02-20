@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
     const answer = await generateAnswer(question, contents)
 
     return NextResponse.json({ answer })
-  } catch {
+  } catch (e) {
+    console.error('[/api/ask]', e)
     return NextResponse.json({ error: 'Failed to generate answer' }, { status: 500 })
   }
 }

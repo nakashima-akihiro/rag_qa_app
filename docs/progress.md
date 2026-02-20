@@ -51,14 +51,14 @@
 
 ## フェーズ 5: フロントエンド
 
-- [ ] `app/page.tsx` — Q&A画面
+- [x] `app/page.tsx` — Q&A画面
   - 質問入力フォーム
   - 送信ボタン（ローディング表示）
   - 回答表示エリア
-- [ ] `app/admin/login/page.tsx` — ログイン画面
+- [x] `app/admin/login/page.tsx` — ログイン画面
   - パスワード入力フォーム
   - エラーメッセージ表示
-- [ ] `app/admin/sources/page.tsx` — ソース管理画面
+- [x] `app/admin/sources/page.tsx` — ソース管理画面
   - ソース一覧（タイトル・登録日・削除ボタン）
   - 新規登録フォーム（タイトル＋テキスト）
   - ログアウトボタン
