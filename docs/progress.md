@@ -45,7 +45,7 @@
 
 ## フェーズ 4: Middleware
 
-- [ ] `middleware.ts` — `/admin/*` 保護（JWT検証→未認証はloginへリダイレクト）
+- [x] `middleware.ts` — `/admin/*` 保護（JWT検証→未認証はloginへリダイレクト）
 
 ---
 
