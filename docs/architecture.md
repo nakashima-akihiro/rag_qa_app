@@ -52,9 +52,10 @@ rag-qa-app/
 │   ├── architecture.md             # このファイル
 │   ├── database.md                 # DBスキーマ・セットアップ
 │   ├── api.md                      # APIエンドポイント仕様
+│   ├── nextjs-best-practices.md    # Next.js/Reactベストプラクティス
 │   └── progress.md                 # 開発進捗
 ├── .env.local                      # 環境変数（gitignore対象）
-├── next.config.ts
+├── next.config.ts                  # optimizePackageImports など
 ├── tailwind.config.ts
 └── package.json
 ```
@@ -90,6 +91,23 @@ POST /api/admin/login { password }
   → 環境変数 ADMIN_PASSWORD と比較
   → 一致したらJWTを生成 → HttpOnly Cookieにセット
   → middleware.tsで /admin/* アクセス時にJWT検証
+```
+
+---
+
+## next.config.ts
+
+```typescript
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    // アイコン・UIライブラリのバレルインポートを自動最適化（バンドルサイズ削減）
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
+}
+
+export default nextConfig
 ```
 
 ---

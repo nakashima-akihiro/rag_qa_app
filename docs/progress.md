@@ -9,12 +9,13 @@
 
 ## フェーズ 1: プロジェクト初期セットアップ
 
-- [ ] `npx create-next-app@14` でプロジェクト作成（TypeScript, Tailwind, App Router）
+- [ ] `npx create-next-app@latest` でプロジェクト作成（TypeScript, Tailwind, App Router）
 - [ ] 必要パッケージのインストール
   - `@anthropic-ai/sdk`
   - `openai`
   - `@supabase/supabase-js`
   - `jose`
+- [ ] `next.config.ts` に `optimizePackageImports` を設定（`docs/architecture.md` 参照）
 - [ ] `.env.local` を作成（APIキー設定）
 - [ ] Supabase でテーブル・関数・RLS を作成（`docs/database.md` 参照）
 
@@ -84,3 +85,4 @@
 - [アーキテクチャ](./architecture.md)
 - [DB設計](./database.md)
 - [API仕様](./api.md)
+- [Next.js ベストプラクティス](./nextjs-best-practices.md)
