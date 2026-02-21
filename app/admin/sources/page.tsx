@@ -9,6 +9,8 @@ type Source = {
   created_at: string
 }
 
+type SourceDetail = Source & { body: string }
+
 export default function SourcesPage() {
   const router = useRouter()
   const [sources, setSources] = useState<Source[]>([])
@@ -18,6 +20,8 @@ export default function SourcesPage() {
   const [webUrl, setWebUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [detail, setDetail] = useState<SourceDetail | null>(null)
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
 
   const fetchSources = useCallback(async () => {
     const res = await fetch('/api/admin/sources')
@@ -56,6 +60,17 @@ export default function SourcesPage() {
         setError(data.error ?? '登録に失敗しました')
       }
     })
+  }
+
+  const handleShowDetail = async (id: string) => {
+    setIsLoadingDetail(true)
+    setDetail(null)
+    const res = await fetch(`/api/admin/sources/${id}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetail(data)
+    }
+    setIsLoadingDetail(false)
   }
 
   const handleDelete = (id: string) => {
@@ -210,19 +225,68 @@ export default function SourcesPage() {
                       {new Date(source.created_at).toLocaleString('ja-JP')}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleDelete(source.id)}
-                    disabled={isPending}
-                    className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 transition-colors"
-                  >
-                    削除
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => handleShowDetail(source.id)}
+                      disabled={isPending}
+                      className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+                    >
+                      内容確認
+                    </button>
+                    <button
+                      onClick={() => handleDelete(source.id)}
+                      disabled={isPending}
+                      className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50 transition-colors"
+                    >
+                      削除
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </div>
       </div>
+
+      {/* 内容確認モーダル */}
+      {(isLoadingDetail || detail) ? (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setDetail(null)}
+        >
+          <div
+            className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900 truncate pr-4">
+                {isLoadingDetail ? '読み込み中...' : detail?.title}
+              </h3>
+              <button
+                onClick={() => setDetail(null)}
+                className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            {detail !== null ? (
+              <>
+                <div className="px-6 py-2 border-b border-gray-100 flex items-center gap-4 text-xs text-gray-400">
+                  <span>{new Date(detail.created_at).toLocaleString('ja-JP')}</span>
+                  <span>{detail.body.length.toLocaleString()} 文字</span>
+                </div>
+                <div className="px-6 py-4 overflow-y-auto flex-1">
+                  <pre className="text-sm text-gray-700 whitespace-pre-wrap break-words font-sans leading-relaxed">
+                    {detail.body}
+                  </pre>
+                </div>
+              </>
+            ) : (
+              <div className="px-6 py-12 text-center text-gray-400 text-sm">読み込み中...</div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
