@@ -22,6 +22,11 @@ export default function SourcesPage() {
   const [isPending, startTransition] = useTransition()
   const [detail, setDetail] = useState<SourceDetail | null>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const fetchSources = useCallback(async () => {
     const res = await fetch('/api/admin/sources')
@@ -65,12 +70,49 @@ export default function SourcesPage() {
   const handleShowDetail = async (id: string) => {
     setIsLoadingDetail(true)
     setDetail(null)
+    setIsEditing(false)
+    setEditError(null)
     const res = await fetch(`/api/admin/sources/${id}`)
     if (res.ok) {
       const data = await res.json()
       setDetail(data)
     }
     setIsLoadingDetail(false)
+  }
+
+  const handleStartEdit = () => {
+    if (!detail) return
+    setEditTitle(detail.title)
+    setEditBody(detail.body)
+    setEditError(null)
+    setIsEditing(true)
+  }
+
+  const handleSave = async () => {
+    if (!detail) return
+    setIsSaving(true)
+    setEditError(null)
+    const res = await fetch(`/api/admin/sources/${detail.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editTitle, body: editBody }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setDetail({ ...detail, title: editTitle, body: editBody, ...updated })
+      setSources(prev => prev.map(s => s.id === detail.id ? { ...s, title: editTitle } : s))
+      setIsEditing(false)
+    } else {
+      const data = await res.json()
+      setEditError(data.error ?? '保存に失敗しました')
+    }
+    setIsSaving(false)
+  }
+
+  const handleCloseModal = () => {
+    setDetail(null)
+    setIsEditing(false)
+    setEditError(null)
   }
 
   const handleDelete = (id: string) => {
@@ -248,28 +290,43 @@ export default function SourcesPage() {
         </div>
       </div>
 
-      {/* 内容確認モーダル */}
+      {/* 内容確認・編集モーダル */}
       {(isLoadingDetail || detail) ? (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={() => setDetail(null)}
+          onClick={isEditing ? undefined : handleCloseModal}
         >
           <div
             className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
+            {/* ヘッダー */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="font-semibold text-gray-900 truncate pr-4">
-                {isLoadingDetail ? '読み込み中...' : detail?.title}
+                {isLoadingDetail ? '読み込み中...' : isEditing ? '編集' : detail?.title}
               </h3>
-              <button
-                onClick={() => setDetail(null)}
-                className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-xl leading-none"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {detail !== null && !isEditing ? (
+                  <button
+                    onClick={handleStartEdit}
+                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    編集
+                  </button>
+                ) : null}
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-            {detail !== null ? (
+
+            {isLoadingDetail ? (
+              <div className="px-6 py-12 text-center text-gray-400 text-sm">読み込み中...</div>
+            ) : detail !== null && !isEditing ? (
+              /* 確認モード */
               <>
                 <div className="px-6 py-2 border-b border-gray-100 flex items-center gap-4 text-xs text-gray-400">
                   <span>{new Date(detail.created_at).toLocaleString('ja-JP')}</span>
@@ -281,9 +338,47 @@ export default function SourcesPage() {
                   </pre>
                 </div>
               </>
-            ) : (
-              <div className="px-6 py-12 text-center text-gray-400 text-sm">読み込み中...</div>
-            )}
+            ) : detail !== null && isEditing ? (
+              /* 編集モード */
+              <div className="px-6 py-4 flex flex-col gap-3 overflow-y-auto flex-1">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex-1 flex flex-col">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">本文</label>
+                  <textarea
+                    value={editBody}
+                    onChange={e => setEditBody(e.target.value)}
+                    className="flex-1 min-h-48 w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {editError !== null ? (
+                  <p className="text-red-600 text-sm">{editError}</p>
+                ) : null}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving || !editTitle || !editBody}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isSaving ? '保存中（再Embedding処理中）...' : '保存する'}
+                  </button>
+                  <button
+                    onClick={() => { setIsEditing(false); setEditError(null) }}
+                    disabled={isSaving}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
