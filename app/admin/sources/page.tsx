@@ -20,9 +20,10 @@ export default function SourcesPage() {
   const [webUrl, setWebUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  // モーダル
   const [detail, setDetail] = useState<SourceDetail | null>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editBody, setEditBody] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
@@ -67,25 +68,18 @@ export default function SourcesPage() {
     })
   }
 
-  const handleShowDetail = async (id: string) => {
+  const handleOpenModal = async (id: string) => {
     setIsLoadingDetail(true)
     setDetail(null)
-    setIsEditing(false)
     setEditError(null)
     const res = await fetch(`/api/admin/sources/${id}`)
     if (res.ok) {
-      const data = await res.json()
+      const data: SourceDetail = await res.json()
       setDetail(data)
+      setEditTitle(data.title)
+      setEditBody(data.body)
     }
     setIsLoadingDetail(false)
-  }
-
-  const handleStartEdit = () => {
-    if (!detail) return
-    setEditTitle(detail.title)
-    setEditBody(detail.body)
-    setEditError(null)
-    setIsEditing(true)
   }
 
   const handleSave = async () => {
@@ -101,7 +95,6 @@ export default function SourcesPage() {
       const updated = await res.json()
       setDetail({ ...detail, title: editTitle, body: editBody, ...updated })
       setSources(prev => prev.map(s => s.id === detail.id ? { ...s, title: editTitle } : s))
-      setIsEditing(false)
     } else {
       const data = await res.json()
       setEditError(data.error ?? '保存に失敗しました')
@@ -111,7 +104,6 @@ export default function SourcesPage() {
 
   const handleCloseModal = () => {
     setDetail(null)
-    setIsEditing(false)
     setEditError(null)
   }
 
@@ -149,15 +141,12 @@ export default function SourcesPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">新規登録</h2>
 
-          {/* タブ切り替え */}
           <div className="flex border border-gray-200 rounded-md overflow-hidden mb-4">
             <button
               type="button"
               onClick={() => { setTab('text'); setError(null) }}
               className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                tab === 'text'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                tab === 'text' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
               テキスト
@@ -166,9 +155,7 @@ export default function SourcesPage() {
               type="button"
               onClick={() => { setTab('url'); setError(null) }}
               className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                tab === 'url'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                tab === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
               WebページURL
@@ -179,9 +166,7 @@ export default function SourcesPage() {
             {tab === 'url' ? (
               <>
                 <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
                   <input
                     type="url"
                     value={webUrl}
@@ -269,11 +254,11 @@ export default function SourcesPage() {
                   </div>
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={() => handleShowDetail(source.id)}
+                      onClick={() => handleOpenModal(source.id)}
                       disabled={isPending}
                       className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
                     >
-                      内容確認
+                      確認・編集
                     </button>
                     <button
                       onClick={() => handleDelete(source.id)}
@@ -290,94 +275,83 @@ export default function SourcesPage() {
         </div>
       </div>
 
-      {/* 内容確認・編集モーダル */}
+      {/* 確認・編集モーダル */}
       {(isLoadingDetail || detail) ? (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={isEditing ? undefined : handleCloseModal}
+          onClick={isSaving ? undefined : handleCloseModal}
         >
           <div
-            className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col"
+            className="bg-white rounded-lg w-full max-w-2xl h-[88vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             {/* ヘッダー */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900 truncate pr-4">
-                {isLoadingDetail ? '読み込み中...' : isEditing ? '編集' : detail?.title}
-              </h3>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                {detail !== null && !isEditing ? (
-                  <button
-                    onClick={handleStartEdit}
-                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    編集
-                  </button>
-                ) : null}
-                <button
-                  onClick={handleCloseModal}
-                  className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-                >
-                  ✕
-                </button>
-              </div>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+              <span className="text-sm font-medium text-gray-500">確認・編集</span>
+              <button
+                onClick={handleCloseModal}
+                disabled={isSaving}
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 text-xl leading-none"
+              >
+                ✕
+              </button>
             </div>
 
             {isLoadingDetail ? (
-              <div className="px-6 py-12 text-center text-gray-400 text-sm">読み込み中...</div>
-            ) : detail !== null && !isEditing ? (
-              /* 確認モード */
+              <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                読み込み中...
+              </div>
+            ) : detail !== null ? (
               <>
-                <div className="px-6 py-2 border-b border-gray-100 flex items-center gap-4 text-xs text-gray-400">
-                  <span>{new Date(detail.created_at).toLocaleString('ja-JP')}</span>
-                  <span>{detail.body.length.toLocaleString()} 文字</span>
+                {/* 編集フォーム */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+                  <div className="flex items-center gap-3 text-xs text-gray-400 -mb-1">
+                    <span>{new Date(detail.created_at).toLocaleString('ja-JP')}</span>
+                    <span>{editBody.length.toLocaleString()} 文字</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">本文</label>
+                    <textarea
+                      value={editBody}
+                      onChange={e => setEditBody(e.target.value)}
+                      className="flex-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ minHeight: '400px' }}
+                    />
+                  </div>
                 </div>
-                <div className="px-6 py-4 overflow-y-auto flex-1">
-                  <pre className="text-sm text-gray-700 whitespace-pre-wrap break-words font-sans leading-relaxed">
-                    {detail.body}
-                  </pre>
+
+                {/* フッター */}
+                <div className="px-6 py-4 border-t border-gray-200 flex-shrink-0">
+                  {editError !== null ? (
+                    <p className="text-red-600 text-sm mb-3">{editError}</p>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving || !editTitle || !editBody}
+                      className="flex-1 bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isSaving ? '保存中（Embedding再生成中）...' : '保存する'}
+                    </button>
+                    <button
+                      onClick={handleCloseModal}
+                      disabled={isSaving}
+                      className="px-5 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    >
+                      閉じる
+                    </button>
+                  </div>
                 </div>
               </>
-            ) : detail !== null && isEditing ? (
-              /* 編集モード */
-              <div className="px-6 py-4 flex flex-col gap-3 overflow-y-auto flex-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
-                  <input
-                    type="text"
-                    value={editTitle}
-                    onChange={e => setEditTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="flex-1 flex flex-col">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">本文</label>
-                  <textarea
-                    value={editBody}
-                    onChange={e => setEditBody(e.target.value)}
-                    className="flex-1 min-h-48 w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                {editError !== null ? (
-                  <p className="text-red-600 text-sm">{editError}</p>
-                ) : null}
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving || !editTitle || !editBody}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isSaving ? '保存中（再Embedding処理中）...' : '保存する'}
-                  </button>
-                  <button
-                    onClick={() => { setIsEditing(false); setEditError(null) }}
-                    disabled={isSaving}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                  >
-                    キャンセル
-                  </button>
-                </div>
-              </div>
             ) : null}
           </div>
         </div>
