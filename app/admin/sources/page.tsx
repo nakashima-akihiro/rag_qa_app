@@ -12,8 +12,10 @@ type Source = {
 export default function SourcesPage() {
   const router = useRouter()
   const [sources, setSources] = useState<Source[]>([])
+  const [tab, setTab] = useState<'text' | 'url'>('text')
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [webUrl, setWebUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -34,14 +36,20 @@ export default function SourcesPage() {
     setError(null)
 
     startTransition(async () => {
+      const payload = tab === 'url'
+        ? { title: title || undefined, webUrl }
+        : { title, body }
+
       const res = await fetch('/api/admin/sources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body }),
+        body: JSON.stringify(payload),
       })
+
       if (res.ok) {
         setTitle('')
         setBody('')
+        setWebUrl('')
         await fetchSources()
       } else {
         const data = await res.json()
@@ -83,27 +91,86 @@ export default function SourcesPage() {
         {/* 新規登録フォーム */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">新規登録</h2>
+
+          {/* タブ切り替え */}
+          <div className="flex border border-gray-200 rounded-md overflow-hidden mb-4">
+            <button
+              type="button"
+              onClick={() => { setTab('text'); setError(null) }}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                tab === 'text'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              テキスト
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTab('url'); setError(null) }}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                tab === 'url'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              WebページURL
+            </button>
+          </div>
+
           <form onSubmit={handleRegister}>
-            <div className="mb-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">テキスト</label>
-              <textarea
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
+            {tab === 'url' ? (
+              <>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    URL
+                  </label>
+                  <input
+                    type="url"
+                    value={webUrl}
+                    onChange={e => setWebUrl(e.target.value)}
+                    placeholder="https://example.com/article"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    タイトル
+                    <span className="text-gray-400 font-normal ml-1">（省略するとページタイトルを自動取得）</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">テキスト</label>
+                  <textarea
+                    value={body}
+                    onChange={e => setBody(e.target.value)}
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </>
+            )}
 
             {error !== null ? (
               <p className="text-red-600 text-sm mb-3">{error}</p>
@@ -114,7 +181,9 @@ export default function SourcesPage() {
               disabled={isPending}
               className="w-full bg-blue-600 text-white py-2 rounded-md font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isPending ? '登録中...' : '登録する'}
+              {isPending
+                ? tab === 'url' ? 'ページ取得・登録中...' : '登録中...'
+                : '登録する'}
             </button>
           </form>
         </div>
