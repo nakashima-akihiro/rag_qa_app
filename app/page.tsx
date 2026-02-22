@@ -1,7 +1,14 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+
+const QUICK_QUESTIONS = [
+  'トルキーストレートの動かし方は？',
+  'スピニングの糸の太さは？',
+  '春に有効な攻め方は？',
+  'ベイトフィネスについて教えて',
+]
 
 export default function Home() {
   const [question, setQuestion] = useState('')
@@ -9,6 +16,22 @@ export default function Home() {
   const [sources, setSources] = useState<{ id: string; title: string; url: string | null }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  const answerRef = useRef<HTMLDivElement>(null)
+  const hasScrolledRef = useRef(false)
+
+  // 回答開始時に自動スクロール
+  useEffect(() => {
+    if (answer === '' && !hasScrolledRef.current) {
+      hasScrolledRef.current = true
+      setTimeout(() => {
+        answerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+    if (answer === null) {
+      hasScrolledRef.current = false
+    }
+  }, [answer])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,66 +103,147 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8 text-center">Q&A</h1>
+    <div
+      className="min-h-screen"
+      style={{ background: '#eef6fa', paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+    >
+      {/* 固定ヘッダー */}
+      <header
+        className="fixed top-0 left-0 right-0 z-10"
+        style={{ background: '#eef6fa', borderBottom: '1px solid #d0e8f4' }}
+      >
+        <div className="h-1" style={{ background: '#00A8E8' }} />
+        <div className="px-4 py-3 flex items-baseline gap-3">
+          <h1 className="text-xl font-black italic" style={{ color: '#0d1e2a' }}>
+            バス釣り <span style={{ color: '#00A8E8' }}>Q&A</span>
+          </h1>
+          <span className="text-xs tracking-widest uppercase hidden sm:block" style={{ color: '#7aaabf' }}>
+            For All Mad Anglers.
+          </span>
+        </div>
+      </header>
 
-        <form onSubmit={handleSubmit} className="mb-6">
+      {/* メインコンテンツ */}
+      <main className="pt-20 px-4 max-w-xl mx-auto">
+
+        {/* クイック質問チップ */}
+        <div className="mb-4">
+          <p className="text-xs font-semibold mb-2" style={{ color: '#7aaabf' }}>よくある質問</p>
+          <div
+            className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {QUICK_QUESTIONS.map(q => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => setQuestion(q)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                style={{
+                  background: question === q ? '#00A8E8' : '#ffffff',
+                  color: question === q ? '#ffffff' : '#0d1e2a',
+                  border: `1px solid ${question === q ? '#00A8E8' : '#c0d8e8'}`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* フォーム */}
+        <form onSubmit={handleSubmit} className="mb-5">
           <textarea
             value={question}
             onChange={e => setQuestion(e.target.value)}
-            placeholder="質問を入力してください"
-            rows={4}
+            placeholder="例：ラバージグのカラー選びはどうすれば？"
+            rows={3}
             maxLength={500}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 resize-none focus:outline-none rounded-xl"
+            style={{
+              background: '#ffffff',
+              color: '#0d1e2a',
+              border: '1px solid #c0d8e8',
+              fontFamily: 'inherit',
+              fontSize: '16px', // iOS zoom防止
+              lineHeight: '1.5',
+            }}
           />
           <button
             type="submit"
             disabled={isPending || !question.trim()}
-            className="mt-3 w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="mt-3 w-full rounded-xl font-bold tracking-wide transition-colors"
+            style={{
+              padding: '14px',
+              fontSize: '1rem',
+              background: isPending || !question.trim() ? '#c8dde8' : '#00A8E8',
+              color: isPending || !question.trim() ? '#7a9aaa' : '#ffffff',
+              border: 'none',
+              cursor: isPending || !question.trim() ? 'not-allowed' : 'pointer',
+            }}
           >
             {isPending ? '回答を生成中...' : '質問する'}
           </button>
         </form>
 
+        {/* 回答 */}
         {answer !== null ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <p className="text-sm font-medium text-gray-500 mb-2">回答</p>
-            <div className="prose prose-gray max-w-none text-gray-800">
-              <ReactMarkdown>{answer}</ReactMarkdown>
-            </div>
-            {sources.length > 0 ? (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs font-medium text-gray-400 mb-2">参考ソース</p>
-                <ul className="flex flex-col gap-1">
-                  {sources.map(source => (
-                    <li key={source.id} className="text-sm text-gray-600">
-                      {source.url !== null ? (
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          · {source.title}
-                        </a>
-                      ) : (
-                        <span>· {source.title}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+          <div
+            ref={answerRef}
+            className="rounded-xl overflow-hidden"
+            style={{ border: '1px solid #c0d8e8' }}
+          >
+            <div className="h-1" style={{ background: '#00A8E8' }} />
+            <div className="px-4 py-4" style={{ background: '#ffffff' }}>
+              <p className="text-xs font-bold mb-3 tracking-widest uppercase" style={{ color: '#00A8E8' }}>
+                Answer
+              </p>
+              <div className="prose prose-sm max-w-none" style={{ color: '#0d1e2a', fontSize: '15px', lineHeight: '1.7' }}>
+                <ReactMarkdown>{answer}</ReactMarkdown>
               </div>
-            ) : null}
+
+              {sources.length > 0 ? (
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid #d8eaf4' }}>
+                  <p className="text-xs font-bold mb-2 tracking-widest uppercase" style={{ color: '#7aaabf' }}>
+                    Sources
+                  </p>
+                  <ul className="flex flex-col gap-1.5">
+                    {sources.map(source => (
+                      <li key={source.id} className="text-sm" style={{ color: '#4a6a80' }}>
+                        {source.url !== null ? (
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                            style={{ color: '#00A8E8' }}
+                          >
+                            · {source.title}
+                          </a>
+                        ) : (
+                          <span>· {source.title}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
+        {/* エラー */}
         {error !== null ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700 text-sm">{error}</p>
+          <div
+            className="rounded-xl px-4 py-3"
+            style={{ background: '#fff0f0', border: '1px solid #f0c0c0' }}
+          >
+            <p className="text-sm" style={{ color: '#c03030' }}>{error}</p>
           </div>
         ) : null}
-      </div>
+
+      </main>
     </div>
   )
 }
