@@ -4,7 +4,7 @@
 
 ### `POST /api/ask`
 
-ユーザーの質問に対してRAGで回答を生成する。
+ユーザーの質問に対してRAGで回答を生成する。ストリーミング形式（Server-Sent Events）で応答する。
 
 **Request Body**
 ```json
@@ -13,12 +13,14 @@
 }
 ```
 
-**Response 200**
-```json
-{
-  "answer": "string"
-}
-```
+**Response 200** — `Content-Type: text/event-stream`
+
+SSE形式で以下のイベントを順次送信：
+
+- `data: {"type":"text","delta":"..."}` — 回答テキストのチャンク（複数回）
+- `data: {"type":"sources","sources":[...]}` — 参考ソース一覧
+- `data: {"type":"done"}` — 完了
+- `data: {"type":"error","error":"..."}` — エラー時
 
 **Response 400**
 ```json

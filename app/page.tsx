@@ -14,7 +14,7 @@ export default function Home() {
     e.preventDefault()
     if (!question.trim()) return
 
-    setAnswer(null)
+    setAnswer('')
     setSources([])
     setError(null)
 
@@ -24,12 +24,57 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),
       })
-      const data = await res.json()
-      if (res.ok) {
-        setAnswer(data.answer)
-        setSources(data.sources ?? [])
-      } else {
-        setError(data.error ?? '回答の生成に失敗しました')
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError((data.error as string) ?? '回答の生成に失敗しました')
+        return
+      }
+
+      if (!res.body) {
+        setError('回答の生成に失敗しました')
+        return
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6)) as {
+                  type: string
+                  delta?: string
+                  sources?: { id: string; title: string; url: string | null }[]
+                  error?: string
+                }
+                if (data.type === 'text' && data.delta) {
+                  setAnswer(prev => (prev ?? '') + data.delta)
+                } else if (data.type === 'sources' && data.sources) {
+                  setSources(data.sources)
+                } else if (data.type === 'error' && data.error) {
+                  setError(data.error)
+                  setAnswer(null)
+                }
+              } catch {
+                // JSON parse 失敗は無視
+              }
+            }
+          }
+        }
+      } catch {
+        setError('回答の取得中にエラーが発生しました')
+        setAnswer(null)
       }
     })
   }
