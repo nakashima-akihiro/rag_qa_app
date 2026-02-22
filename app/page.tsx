@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 export default function Home() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<string | null>(null)
+  const [sources, setSources] = useState<{ id: string; title: string; url: string | null }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -14,6 +15,7 @@ export default function Home() {
     if (!question.trim()) return
 
     setAnswer(null)
+    setSources([])
     setError(null)
 
     startTransition(async () => {
@@ -25,6 +27,7 @@ export default function Home() {
       const data = await res.json()
       if (res.ok) {
         setAnswer(data.answer)
+        setSources(data.sources ?? [])
       } else {
         setError(data.error ?? '回答の生成に失敗しました')
       }
@@ -60,6 +63,29 @@ export default function Home() {
             <div className="prose prose-gray max-w-none text-gray-800">
               <ReactMarkdown>{answer}</ReactMarkdown>
             </div>
+            {sources.length > 0 ? (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs font-medium text-gray-400 mb-2">参考ソース</p>
+                <ul className="flex flex-col gap-1">
+                  {sources.map(source => (
+                    <li key={source.id} className="text-sm text-gray-600">
+                      {source.url !== null ? (
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          · {source.title}
+                        </a>
+                      ) : (
+                        <span>· {source.title}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

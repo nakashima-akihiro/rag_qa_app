@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     // sourcesテーブルに登録
     const { data: source, error: sourceError } = await supabaseAdmin
       .from('sources')
-      .insert({ title: resolvedTitle, body: resolvedBody })
+      .insert({ title: resolvedTitle, body: resolvedBody, url: webUrl ?? null })
       .select('id, title, created_at')
       .single()
 

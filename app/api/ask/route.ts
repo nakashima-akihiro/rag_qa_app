@@ -21,10 +21,23 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error
 
-    const contents = (chunks ?? []).map((c: { content: string }) => c.content)
+    const chunkList = chunks ?? []
+    const contents = chunkList.map((c: { content: string }) => c.content)
     const answer = await generateAnswer(question, contents)
 
-    return NextResponse.json({ answer })
+    // 使用したチャンクのソースIDを重複排除して取得
+    const sourceIds = [...new Set(chunkList.map((c: { source_id: string }) => c.source_id))]
+
+    let sources: { id: string; title: string; url: string | null }[] = []
+    if (sourceIds.length > 0) {
+      const { data: sourcesData } = await supabase
+        .from('sources')
+        .select('id, title, url')
+        .in('id', sourceIds)
+      sources = sourcesData ?? []
+    }
+
+    return NextResponse.json({ answer, sources })
   } catch (e) {
     console.error('[/api/ask]', e)
     return NextResponse.json({ error: 'Failed to generate answer' }, { status: 500 })
