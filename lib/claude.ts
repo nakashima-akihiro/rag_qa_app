@@ -6,33 +6,59 @@ export const OUT_OF_SCOPE_MESSAGE = '提供された情報の範囲外のため�
 
 /**
  * 質問とコンテキストチャンクをもとに Claude でストリーミング回答を生成する。
- * チャンクが空の場合はスコープ外メッセージを1回 yield して終了。
+ * weatherContext が指定されている場合は天候ベースの回答を優先する。
+ * チャンクが空かつ天候情報もない場合はスコープ外メッセージを1回 yield して終了。
  */
 export async function* streamAnswer(
   question: string,
-  chunks: string[]
+  chunks: string[],
+  weatherContext?: string
 ): AsyncGenerator<string, void, unknown> {
-  if (chunks.length === 0) {
+  if (chunks.length === 0 && !weatherContext) {
     yield OUT_OF_SCOPE_MESSAGE
     return
   }
 
   const context = chunks.join('\n\n---\n\n')
-  const stream = anthropic.messages.stream({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [
-      {
-        role: 'user',
-        content: `以下の情報をもとに質問に回答してください。情報に含まれていない内容については回答しないでください。
+
+  let userContent: string
+  if (weatherContext && chunks.length > 0) {
+    userContent = `以下の参考情報と天候情報をもとに質問に回答してください。
+
+## 現在の天候情報
+${weatherContext}
+
+## 参考情報（登録ソースより）
+${context}
+
+## 質問
+${question}
+
+天候に合わせたバス釣りのルアー・場所・アクションを具体的にアドバイスしてください。`
+  } else if (weatherContext) {
+    userContent = `以下の天候情報をもとに、今日のバス釣りのおすすめを具体的にアドバイスしてください。
+
+## 現在の天候情報
+${weatherContext}
+
+## 質問
+${question}
+
+天候に合わせたルアー選択・釣り場・アクションについて具体的にアドバイスしてください。`
+  } else {
+    userContent = `以下の情報をもとに質問に回答してください。情報に含まれていない内容については回答しないでください。
 
 ## 参考情報
 ${context}
 
 ## 質問
-${question}`,
-      },
-    ],
+${question}`
+  }
+
+  const stream = anthropic.messages.stream({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: userContent }],
   })
 
   const textChunks: string[] = []

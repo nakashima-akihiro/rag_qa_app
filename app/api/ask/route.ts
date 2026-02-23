@@ -7,9 +7,35 @@ function sseMessage(data: object): string {
   return `data: ${JSON.stringify(data)}\n\n`
 }
 
+const WEATHER_CODE_MAP: Record<number, string> = {
+  0: '快晴', 1: 'ほぼ晴れ', 2: '一部曇り', 3: '曇り',
+  45: '霧', 48: '霧',
+  51: '霧雨(弱)', 53: '霧雨', 55: '霧雨(強)',
+  61: '小雨', 63: '雨', 65: '大雨',
+  71: '小雪', 73: '雪', 75: '大雪',
+  80: 'にわか雨(弱)', 81: 'にわか雨', 82: 'にわか雨(強)',
+  95: '雷雨', 96: '激しい雷雨', 99: '激しい雷雨',
+}
+
+async function fetchWeatherContext(lat: number, lon: number): Promise<string | undefined> {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&timezone=auto`
+    const res = await fetch(url, { next: { revalidate: 0 } })
+    if (!res.ok) return undefined
+    const data = await res.json()
+    const c = data.current
+    const weatherDesc = WEATHER_CODE_MAP[c.weather_code as number] ?? '不明'
+    return `天気: ${weatherDesc}\n気温: ${c.temperature_2m}°C\n湿度: ${c.relative_humidity_2m}%\n風速: ${c.wind_speed_10m} km/h\n降水量: ${c.precipitation} mm`
+  } catch {
+    return undefined
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   const question = (body?.question as string | undefined)?.trim()
+  const lat = typeof body?.lat === 'number' ? body.lat : undefined
+  const lon = typeof body?.lon === 'number' ? body.lon : undefined
 
   if (!question) {
     return NextResponse.json({ error: 'question is required' }, { status: 400 })
@@ -20,7 +46,10 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const embedding = await generateEmbedding(question)
+        const [embedding, weatherContext] = await Promise.all([
+          generateEmbedding(question),
+          lat !== undefined && lon !== undefined ? fetchWeatherContext(lat, lon) : Promise.resolve(undefined),
+        ])
 
         const { data: chunks, error } = await supabase.rpc('match_chunks', {
           query_embedding: embedding,
@@ -33,7 +62,7 @@ export async function POST(req: NextRequest) {
         const contents = chunkList.map((c: { content: string }) => c.content)
 
         let fullAnswer = ''
-        for await (const delta of streamAnswer(question, contents)) {
+        for await (const delta of streamAnswer(question, contents, weatherContext)) {
           controller.enqueue(encoder.encode(sseMessage({ type: 'text', delta })))
           fullAnswer += delta
         }
@@ -63,7 +92,7 @@ export async function POST(req: NextRequest) {
         supabaseAdmin.from('questions').insert({
           question,
           answer: fullAnswer,
-          is_out_of_scope: contents.length === 0 || fullAnswer === OUT_OF_SCOPE_MESSAGE,
+          is_out_of_scope: (contents.length === 0 && !weatherContext) || fullAnswer === OUT_OF_SCOPE_MESSAGE,
         }).then(({ error }) => {
           if (error) console.error('[questions log]', error)
         })

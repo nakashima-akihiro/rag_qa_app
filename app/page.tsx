@@ -18,6 +18,7 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [isGeoLoading, setIsGeoLoading] = useState(false)
 
   const answerRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -72,7 +73,7 @@ export default function Home() {
     }
   }, [suggestions, scrollToSuggestions])
 
-  const submitQuestion = (q: string) => {
+  const submitQuestion = (q: string, coords?: { lat: number; lon: number }) => {
     if (!q.trim()) return
 
     userScrolledRef.current = false
@@ -86,7 +87,7 @@ export default function Home() {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify({ question: q, ...coords }),
       })
 
       if (!res.ok) {
@@ -151,6 +152,26 @@ export default function Home() {
     submitQuestion(question)
   }
 
+  const handleWeatherQuestion = async () => {
+    if (!navigator.geolocation) {
+      setError('このブラウザでは位置情報がサポートされていません')
+      return
+    }
+    setIsGeoLoading(true)
+    setError(null)
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, maximumAge: 60000 })
+      })
+      const { latitude: lat, longitude: longitude } = position.coords
+      setIsGeoLoading(false)
+      submitQuestion('今日のおすすめの釣りを教えて', { lat, lon: longitude })
+    } catch {
+      setIsGeoLoading(false)
+      setError('位置情報の取得に失敗しました。ブラウザの位置情報アクセスを許可してください。')
+    }
+  }
+
   return (
     <div
       className="min-h-screen"
@@ -174,6 +195,32 @@ export default function Home() {
 
       {/* メインコンテンツ */}
       <main className="pt-20 px-4 max-w-xl mx-auto">
+
+        {/* 今日のおすすめ釣りボタン */}
+        <button
+          type="button"
+          onClick={handleWeatherQuestion}
+          disabled={isPending || isGeoLoading}
+          className="w-full rounded-2xl mb-5 text-left transition-opacity disabled:opacity-60"
+          style={{
+            background: 'linear-gradient(135deg, #00A8E8 0%, #0072b1 100%)',
+            padding: '16px 20px',
+            boxShadow: '0 4px 16px rgba(0,168,232,0.35)',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🎣</span>
+            <div className="flex-1">
+              <p className="font-black text-base leading-tight" style={{ color: '#ffffff' }}>
+                今日のおすすめ釣りを教えて
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                {isGeoLoading ? '📍 現在地を取得中...' : '現在地の天候をもとにAIがアドバイス'}
+              </p>
+            </div>
+            <span className="text-2xl">{isGeoLoading ? '⏳' : '🌤️'}</span>
+          </div>
+        </button>
 
         {/* クイック質問チップ */}
         <div className="mb-4">
