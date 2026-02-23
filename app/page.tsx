@@ -4,7 +4,6 @@ import { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-const WEATHER_CHIP = '今日の天気は？'
 
 export default function Home() {
   const [question, setQuestion] = useState('')
@@ -262,32 +261,47 @@ export default function Home() {
           </div>
         </button>
 
+        {/* 今日の天気ボタン */}
+        <button
+          type="button"
+          onClick={handleWeatherChip}
+          disabled={isPending || isGeoLoading}
+          className="w-full rounded-xl mb-5 text-left transition-opacity disabled:opacity-60 flex items-center gap-2 px-4 py-2.5"
+          style={{ background: '#ffffff', border: '1px solid #c0d8e8' }}
+        >
+          <span>🌤️</span>
+          <span className="text-sm font-medium" style={{ color: '#0d1e2a' }}>今日の天気を確認する</span>
+          <span className="ml-auto text-xs" style={{ color: '#7aaabf' }}>現在地の天気予報を表示</span>
+        </button>
+
         {/* クイック質問チップ */}
-        <div className="mb-4">
-          <p className="text-xs font-semibold mb-2" style={{ color: '#7aaabf' }}>よくある質問</p>
-          <div
-            className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4"
-            style={{ scrollbarWidth: 'none' }}
-          >
-            {[WEATHER_CHIP, ...quickQuestions].map(q => (
-              <button
-                key={q}
-                type="button"
-                disabled={isPending || isGeoLoading}
-                onClick={() => q === WEATHER_CHIP ? handleWeatherChip() : setQuestion(q)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-60"
-                style={{
-                  background: q === WEATHER_CHIP ? '#0072b1' : question === q ? '#00A8E8' : '#ffffff',
-                  color: q === WEATHER_CHIP || question === q ? '#ffffff' : '#0d1e2a',
-                  border: `1px solid ${q === WEATHER_CHIP ? '#0072b1' : question === q ? '#00A8E8' : '#c0d8e8'}`,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {q === WEATHER_CHIP ? `🌤️ ${q}` : q}
-              </button>
-            ))}
+        {quickQuestions.length > 0 ? (
+          <div className="mb-4">
+            <p className="text-xs font-semibold mb-2" style={{ color: '#7aaabf' }}>よくある質問</p>
+            <div
+              className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {quickQuestions.map(q => (
+                <button
+                  key={q}
+                  type="button"
+                  disabled={isPending || isGeoLoading}
+                  onClick={() => setQuestion(q)}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-60"
+                  style={{
+                    background: question === q ? '#00A8E8' : '#ffffff',
+                    color: question === q ? '#ffffff' : '#0d1e2a',
+                    border: `1px solid ${question === q ? '#00A8E8' : '#c0d8e8'}`,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {/* フォーム */}
         <form onSubmit={handleSubmit} className="mb-5">
