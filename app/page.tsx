@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const QUICK_QUESTIONS = [
   'トルキーストレートの動かし方は？',
@@ -248,7 +249,25 @@ export default function Home() {
                 Answer
               </p>
               <div className="prose prose-sm max-w-none" style={{ color: '#0d1e2a', fontSize: '15px', lineHeight: '1.7' }}>
-                <ReactMarkdown>{answer}</ReactMarkdown>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto my-3">
+                        <table className="w-full border-collapse text-sm">{children}</table>
+                      </div>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-3 py-2 text-left font-semibold border" style={{ background: '#eef6fa', borderColor: '#c0d8e8' }}>{children}</th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-3 py-2 border" style={{ borderColor: '#c0d8e8' }}>{children}</td>
+                    ),
+                    tr: ({ children }) => (
+                      <tr className="even:bg-blue-50/30">{children}</tr>
+                    ),
+                  }}
+                >{answer}</ReactMarkdown>
               </div>
 
               {sources.length > 0 ? (
