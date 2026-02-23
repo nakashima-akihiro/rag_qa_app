@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         supabaseAdmin.from('questions').insert({
           question,
           answer: fullAnswer,
-          is_out_of_scope: (contents.length === 0 && !weatherContext) || fullAnswer === OUT_OF_SCOPE_MESSAGE,
+          is_out_of_scope: contents.length === 0 || fullAnswer === OUT_OF_SCOPE_MESSAGE,
         }).then(({ error }) => {
           if (error) console.error('[questions log]', error)
         })

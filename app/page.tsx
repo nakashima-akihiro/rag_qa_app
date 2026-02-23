@@ -165,7 +165,9 @@ export default function Home() {
       })
       const { latitude: lat, longitude: longitude } = position.coords
       setIsGeoLoading(false)
-      submitQuestion('今日のおすすめの釣りを教えて', { lat, lon: longitude })
+      const month = new Date().getMonth() + 1
+      const season = month >= 3 && month <= 5 ? '春' : month >= 6 && month <= 8 ? '夏' : month >= 9 && month <= 11 ? '秋' : '冬'
+      submitQuestion(`今日（${month}月・${season}）のおすすめのバス釣りを教えて`, { lat, lon: longitude })
     } catch {
       setIsGeoLoading(false)
       setError('位置情報の取得に失敗しました。ブラウザの位置情報アクセスを許可してください。')
