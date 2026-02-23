@@ -99,6 +99,27 @@ export default function AboutPage() {
             className="text-sm font-bold tracking-widest uppercase mb-3"
             style={{ color: '#00A8E8' }}
           >
+            情報の出典
+          </h2>
+          <div
+            className="rounded-xl px-4 py-4"
+            style={{ background: '#fff8e8', border: '1px solid #f0d080' }}
+          >
+            <p className="text-sm leading-relaxed mb-3 font-bold" style={{ color: '#0d1e2a' }}>
+              このサービスの回答は、DさんのYouTubeおよびウェブサイトのコンテンツを100%ソースとしています。
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: '#4a4a30' }}>
+              AIは要約や補足をせず、DさんのYouTubeや各種コンテンツの発言・解説をそのまま抽出してお届けします。
+              回答内容はすべてDさんの発言そのものです。
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-8">
+          <h2
+            className="text-sm font-bold tracking-widest uppercase mb-3"
+            style={{ color: '#00A8E8' }}
+          >
             回答の仕組み
           </h2>
           <div
