@@ -13,10 +13,13 @@ export async function GET() {
     return NextResponse.json([])
   }
 
+  const WEATHER_KEYWORDS = ['天気', '気温', '天候', '気象', '風速', '降水', '晴れ', '雨', '雪', '曇り']
+  const isWeatherQuestion = (q: string) => WEATHER_KEYWORDS.some(kw => q.includes(kw))
+
   const seen = new Set<string>()
   const unique: string[] = []
   for (const row of data ?? []) {
-    if (!seen.has(row.question) && unique.length < 5) {
+    if (!seen.has(row.question) && !isWeatherQuestion(row.question) && unique.length < 5) {
       seen.add(row.question)
       unique.push(row.question)
     }
