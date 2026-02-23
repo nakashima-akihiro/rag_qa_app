@@ -155,30 +155,61 @@ export default function Home() {
     submitQuestion(question)
   }
 
-  const handleGeoQuestion = async (q: string) => {
-    if (!navigator.geolocation) {
-      setError('このブラウザでは位置情報がサポートされていません')
-      return
-    }
+  const getLocation = () =>
+    new Promise<GeolocationPosition>((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('unsupported'))
+        return
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, maximumAge: 60000 })
+    })
+
+  const handleWeatherQuestion = async () => {
     setIsGeoLoading(true)
     setError(null)
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, maximumAge: 60000 })
-      })
-      const { latitude: lat, longitude } = position.coords
+      const pos = await getLocation()
       setIsGeoLoading(false)
-      submitQuestion(q, { lat, lon: longitude })
-    } catch {
+      const month = new Date().getMonth() + 1
+      const season = month >= 3 && month <= 5 ? '春' : month >= 6 && month <= 8 ? '夏' : month >= 9 && month <= 11 ? '秋' : '冬'
+      submitQuestion(`今日（${month}月・${season}）のおすすめのバス釣りを教えて`, { lat: pos.coords.latitude, lon: pos.coords.longitude })
+    } catch (e) {
       setIsGeoLoading(false)
-      setError('位置情報の取得に失敗しました。ブラウザの位置情報アクセスを許可してください。')
+      setError(e instanceof Error && e.message === 'unsupported'
+        ? 'このブラウザでは位置情報がサポートされていません'
+        : '位置情報の取得に失敗しました。ブラウザの位置情報アクセスを許可してください。')
     }
   }
 
-  const handleWeatherQuestion = () => {
-    const month = new Date().getMonth() + 1
-    const season = month >= 3 && month <= 5 ? '春' : month >= 6 && month <= 8 ? '夏' : month >= 9 && month <= 11 ? '秋' : '冬'
-    handleGeoQuestion(`今日（${month}月・${season}）のおすすめのバス釣りを教えて`)
+  const handleWeatherChip = async () => {
+    setIsGeoLoading(true)
+    setError(null)
+    try {
+      const pos = await getLocation()
+      const { latitude: lat, longitude: lon } = pos.coords
+      setIsGeoLoading(false)
+      userScrolledRef.current = false
+      setQuestion('今日の天気は？')
+      setAnswer('')
+      setSources([])
+      setSuggestions([])
+      setError(null)
+      startTransition(async () => {
+        const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`)
+        if (!res.ok) {
+          setError('天気情報の取得に失敗しました')
+          setAnswer(null)
+          return
+        }
+        const { markdown } = await res.json() as { markdown: string }
+        setAnswer(markdown)
+      })
+    } catch (e) {
+      setIsGeoLoading(false)
+      setError(e instanceof Error && e.message === 'unsupported'
+        ? 'このブラウザでは位置情報がサポートされていません'
+        : '位置情報の取得に失敗しました。ブラウザの位置情報アクセスを許可してください。')
+    }
   }
 
   return (
@@ -243,7 +274,7 @@ export default function Home() {
                 key={q}
                 type="button"
                 disabled={isPending || isGeoLoading}
-                onClick={() => q === WEATHER_CHIP ? handleGeoQuestion('今日の天気を教えて') : setQuestion(q)}
+                onClick={() => q === WEATHER_CHIP ? handleWeatherChip() : setQuestion(q)}
                 className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-60"
                 style={{
                   background: q === WEATHER_CHIP ? '#0072b1' : question === q ? '#00A8E8' : '#ffffff',
