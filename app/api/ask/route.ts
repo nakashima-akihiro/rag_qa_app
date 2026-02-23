@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateEmbedding } from '@/lib/embedding'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { streamAnswer, generateSuggestions, OUT_OF_SCOPE_MESSAGE } from '@/lib/claude'
 
 function sseMessage(data: object): string {
@@ -58,6 +58,15 @@ export async function POST(req: NextRequest) {
         }
 
         controller.enqueue(encoder.encode(sseMessage({ type: 'done' })))
+
+        // 質問ログを非同期保存（ストリームをブロックしない）
+        supabaseAdmin.from('questions').insert({
+          question,
+          answer: fullAnswer,
+          is_out_of_scope: contents.length === 0 || fullAnswer === OUT_OF_SCOPE_MESSAGE,
+        }).then(({ error }) => {
+          if (error) console.error('[questions log]', error)
+        })
       } catch (e) {
         console.error('[/api/ask]', e)
         controller.enqueue(

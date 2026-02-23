@@ -207,13 +207,21 @@ export default function SourcesPage() {
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-gray-900">ソース管理</h1>
-          <button
-            onClick={handleLogout}
-            disabled={isPending}
-            className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 transition-colors"
-          >
-            ログアウト
-          </button>
+          <div className="flex items-center gap-4">
+            <a
+              href="/admin/questions"
+              className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              質問ログ
+            </a>
+            <button
+              onClick={handleLogout}
+              disabled={isPending}
+              className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 transition-colors"
+            >
+              ログアウト
+            </button>
+          </div>
         </div>
 
         {/* 新規登録フォーム */}
