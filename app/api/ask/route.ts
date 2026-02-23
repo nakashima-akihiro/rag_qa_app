@@ -19,13 +19,22 @@ const WEATHER_CODE_MAP: Record<number, string> = {
 
 async function fetchWeatherContext(lat: number, lon: number): Promise<string | undefined> {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&timezone=auto`
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation_probability&timezone=auto&forecast_days=1`
     const res = await fetch(url, { next: { revalidate: 0 } })
     if (!res.ok) return undefined
     const data = await res.json()
     const c = data.current
     const weatherDesc = WEATHER_CODE_MAP[c.weather_code as number] ?? '不明'
-    return `天気: ${weatherDesc}\n気温: ${c.temperature_2m}°C\n湿度: ${c.relative_humidity_2m}%\n風速: ${c.wind_speed_10m} km/h\n降水量: ${c.precipitation} mm`
+
+    const hourlyLines = [6, 9, 12, 15, 18, 21].map(h => {
+      const temp = (data.hourly.temperature_2m as number[])[h]
+      const code = (data.hourly.weather_code as number[])[h]
+      const precip = (data.hourly.precipitation_probability as number[])[h]
+      const desc = WEATHER_CODE_MAP[code] ?? '不明'
+      return `${String(h).padStart(2, '0')}時: ${desc} ${temp}°C 降水確率${precip}%`
+    }).join('\n')
+
+    return `天気: ${weatherDesc}\n気温: ${c.temperature_2m}°C\n湿度: ${c.relative_humidity_2m}%\n風速: ${c.wind_speed_10m} km/h\n降水量: ${c.precipitation} mm\n\n【時間帯別予報】\n${hourlyLines}`
   } catch {
     return undefined
   }

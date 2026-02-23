@@ -4,12 +4,7 @@ import { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-const QUICK_QUESTIONS = [
-  'トルキーストレートの動かし方は？',
-  'スピニングの糸の太さは？',
-  '春に有効な攻め方は？',
-  'ベイトフィネスについて教えて',
-]
+const WEATHER_CHIP = '今日の天気は？'
 
 export default function Home() {
   const [question, setQuestion] = useState('')
@@ -19,6 +14,14 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [isGeoLoading, setIsGeoLoading] = useState(false)
+  const [quickQuestions, setQuickQuestions] = useState<string[]>([])
+
+  useEffect(() => {
+    fetch('/api/popular-questions')
+      .then(res => res.json())
+      .then((data: string[]) => setQuickQuestions(data))
+      .catch(() => {})
+  }, [])
 
   const answerRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -231,20 +234,21 @@ export default function Home() {
             className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4"
             style={{ scrollbarWidth: 'none' }}
           >
-            {QUICK_QUESTIONS.map(q => (
+            {[WEATHER_CHIP, ...quickQuestions].map(q => (
               <button
                 key={q}
                 type="button"
-                onClick={() => setQuestion(q)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                disabled={isPending || isGeoLoading}
+                onClick={() => q === WEATHER_CHIP ? handleWeatherQuestion() : setQuestion(q)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-60"
                 style={{
-                  background: question === q ? '#00A8E8' : '#ffffff',
-                  color: question === q ? '#ffffff' : '#0d1e2a',
-                  border: `1px solid ${question === q ? '#00A8E8' : '#c0d8e8'}`,
+                  background: q === WEATHER_CHIP ? '#0072b1' : question === q ? '#00A8E8' : '#ffffff',
+                  color: q === WEATHER_CHIP || question === q ? '#ffffff' : '#0d1e2a',
+                  border: `1px solid ${q === WEATHER_CHIP ? '#0072b1' : question === q ? '#00A8E8' : '#c0d8e8'}`,
                   whiteSpace: 'nowrap',
                 }}
               >
-                {q}
+                {q === WEATHER_CHIP ? `🌤️ ${q}` : q}
               </button>
             ))}
           </div>
