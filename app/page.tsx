@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -222,13 +223,22 @@ export default function Home() {
         style={{ background: '#eef6fa', borderBottom: '1px solid #d0e8f4' }}
       >
         <div className="h-1" style={{ background: '#00A8E8' }} />
-        <div className="px-4 py-3 flex items-baseline gap-3">
-          <h1 className="text-xl font-black italic" style={{ color: '#0d1e2a' }}>
-            バス釣り <span style={{ color: '#00A8E8' }}>Q&A</span>
-          </h1>
-          <span className="text-xs tracking-widest uppercase hidden sm:block" style={{ color: '#7aaabf' }}>
-            For All Mad Anglers.
-          </span>
+        <div className="px-4 py-3 flex items-baseline justify-between gap-3">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="text-xl font-black italic shrink-0" style={{ color: '#0d1e2a' }}>
+              バス釣り <span style={{ color: '#00A8E8' }}>Q&A</span>
+            </h1>
+            <span className="text-xs tracking-widest uppercase hidden sm:block" style={{ color: '#7aaabf' }}>
+              For All Mad Anglers.
+            </span>
+          </div>
+          <Link
+            href="/about"
+            className="text-xs font-medium shrink-0 px-2 py-1 rounded transition-colors hover:opacity-80"
+            style={{ color: '#7aaabf' }}
+          >
+            このサービスについて
+          </Link>
         </div>
       </header>
 
