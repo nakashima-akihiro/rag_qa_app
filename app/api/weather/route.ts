@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation_probability&timezone=auto&forecast_days=1`
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m&timezone=auto&forecast_days=1`
     const res = await fetch(url, { cache: 'no-store' })
     if (!res.ok) throw new Error('weather api failed')
     const data = await res.json()
@@ -43,16 +43,17 @@ export async function GET(req: NextRequest) {
       const temp = (data.hourly.temperature_2m as number[])[h]
       const code = (data.hourly.weather_code as number[])[h]
       const precip = (data.hourly.precipitation_probability as number[])[h]
+      const wind = (data.hourly.wind_speed_10m as number[])[h]
       const emoji = CODE_EMOJI[code] ?? '🌡️'
       const desc = CODE_DESC[code] ?? '不明'
-      return `| ${String(h).padStart(2, '0')}時 | ${emoji} ${desc} | ${temp}°C | ${precip}% |`
+      return `| ${String(h).padStart(2, '0')}時 | ${emoji} ${desc} | ${temp}°C | ${wind} km/h | ${precip}% |`
     }).join('\n')
 
     const markdown = `**現在**: ${curEmoji} ${curDesc} / ${c.temperature_2m}°C
 湿度 ${c.relative_humidity_2m}%　風速 ${c.wind_speed_10m} km/h　降水量 ${c.precipitation} mm
 
-| 時間 | 天気 | 気温 | 降水確率 |
-|:--:|:--:|:--:|:--:|
+| 時間 | 天気 | 気温 | 風速 | 降水確率 |
+|:--:|:--:|:--:|:--:|:--:|
 ${rows}`
 
     return NextResponse.json({ markdown })
