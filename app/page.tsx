@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useRef, useEffect } from 'react'
+import { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 
 const QUICK_QUESTIONS = [
@@ -19,24 +19,62 @@ export default function Home() {
   const [isPending, startTransition] = useTransition()
 
   const answerRef = useRef<HTMLDivElement>(null)
-  const hasScrolledRef = useRef(false)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
+  const userScrolledRef = useRef(false)
+  const isProgrammaticScrollRef = useRef(false)
 
-  // 回答開始時に自動スクロール
+  // ユーザーの手動スクロールのみ検知（プログラム的スクロールは無視）
   useEffect(() => {
-    if (answer === '' && !hasScrolledRef.current) {
-      hasScrolledRef.current = true
-      setTimeout(() => {
-        answerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 100)
+    const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) return
+      const distanceFromBottom =
+        document.documentElement.scrollHeight - window.scrollY - window.innerHeight
+      userScrolledRef.current = distanceFromBottom > 50
     }
-    if (answer === null) {
-      hasScrolledRef.current = false
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToBottom = useCallback(() => {
+    isProgrammaticScrollRef.current = true
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior })
+    requestAnimationFrame(() => {
+      isProgrammaticScrollRef.current = false
+    })
+  }, [])
+
+  const scrollToSuggestions = useCallback(() => {
+    // 2フレーム待ってDOMが確定してからスクロール
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isProgrammaticScrollRef.current = true
+        window.scrollTo({ top: 999999, behavior: 'smooth' })
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false
+        }, 800)
+      })
+    })
+  }, [])
+
+  // ストリーミング中、手動スクロール済みでなければ最下部へ追従
+  useEffect(() => {
+    if (answer !== null && !userScrolledRef.current) {
+      scrollToBottom()
     }
-  }, [answer])
+  }, [answer, scrollToBottom])
+
+  // 回答が出揃い「次に聞く」が表示されたらそこへスクロール
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      scrollToSuggestions()
+    }
+  }, [suggestions, scrollToSuggestions])
 
   const submitQuestion = (q: string) => {
     if (!q.trim()) return
 
+    userScrolledRef.current = false
     setQuestion(q)
     setAnswer('')
     setSources([])
@@ -245,7 +283,7 @@ export default function Home() {
 
         {/* 関連質問サジェスト */}
         {suggestions.length > 0 && !isPending ? (
-          <div className="mt-4">
+          <div ref={suggestionsRef} className="mt-4">
             <p className="text-xs font-semibold mb-2" style={{ color: '#7aaabf' }}>次に聞く</p>
             <div
               className="flex flex-col gap-2"
@@ -278,6 +316,9 @@ export default function Home() {
             <p className="text-sm" style={{ color: '#c03030' }}>{error}</p>
           </div>
         ) : null}
+
+        {/* スクロール追従用センチネル */}
+        <div ref={bottomRef} />
 
       </main>
     </div>
