@@ -14,7 +14,7 @@ export async function* streamAnswer(
   chunks: string[],
   weatherContext?: string
 ): AsyncGenerator<string, void, unknown> {
-  if (chunks.length === 0) {
+  if (chunks.length === 0 && !weatherContext) {
     yield OUT_OF_SCOPE_MESSAGE
     return
   }
@@ -22,7 +22,7 @@ export async function* streamAnswer(
   const context = chunks.join('\n\n---\n\n')
 
   let userContent: string
-  if (weatherContext) {
+  if (weatherContext && chunks.length > 0) {
     userContent = `以下の参考情報をもとに質問に回答してください。参考情報に含まれていない内容については回答しないでください。天候情報は補足として活用し、参考情報の内容を中心にアドバイスしてください。
 
 ## 現在の天候情報（補足）
@@ -30,6 +30,14 @@ ${weatherContext}
 
 ## 参考情報（登録ソースより）
 ${context}
+
+## 質問
+${question}`
+  } else if (weatherContext) {
+    userContent = `以下の天候情報をもとに、今日の天気を時間帯別にわかりやすくまとめてください。釣りへの影響があれば一言触れてください。
+
+## 天候情報
+${weatherContext}
 
 ## 質問
 ${question}`
