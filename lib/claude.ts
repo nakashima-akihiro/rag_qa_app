@@ -67,6 +67,51 @@ ${question}`,
 }
 
 /**
+ * 質問・回答・チャンクをもとに関連質問を3件生成する。
+ * 生成失敗時は空配列を返す。
+ */
+export async function generateSuggestions(
+  question: string,
+  answer: string,
+  chunks: string[]
+): Promise<string[]> {
+  const context = chunks.slice(0, 3).join('\n\n---\n\n').slice(0, 2000)
+
+  const message = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 256,
+    messages: [
+      {
+        role: 'user',
+        content: `ユーザーが以下の質問をして回答を受け取りました。次に聞きたくなりそうな関連質問を3つ、JSON配列で返してください。質問は簡潔に（30文字以内）。配列以外の文字は不要です。
+
+## 質問
+${question}
+
+## 回答
+${answer.slice(0, 500)}
+
+## 参考情報のテーマ
+${context}`,
+      },
+    ],
+  })
+
+  const block = message.content[0]
+  if (block.type !== 'text') return []
+
+  try {
+    const match = block.text.match(/\[[\s\S]*?\]/)
+    if (!match) return []
+    const parsed = JSON.parse(match[0])
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((s): s is string => typeof s === 'string').slice(0, 3)
+  } catch {
+    return []
+  }
+}
+
+/**
  * 質問とコンテキストチャンクをもとに Claude で回答を生成する。
  * チャンクが空の場合はスコープ外メッセージを返す。
  */

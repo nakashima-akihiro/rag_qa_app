@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateEmbedding } from '@/lib/embedding'
 import { supabase } from '@/lib/supabase'
-import { streamAnswer } from '@/lib/claude'
+import { streamAnswer, generateSuggestions, OUT_OF_SCOPE_MESSAGE } from '@/lib/claude'
 
 function sseMessage(data: object): string {
   return `data: ${JSON.stringify(data)}\n\n`
@@ -32,8 +32,10 @@ export async function POST(req: NextRequest) {
         const chunkList = chunks ?? []
         const contents = chunkList.map((c: { content: string }) => c.content)
 
+        let fullAnswer = ''
         for await (const delta of streamAnswer(question, contents)) {
           controller.enqueue(encoder.encode(sseMessage({ type: 'text', delta })))
+          fullAnswer += delta
         }
 
         const sourceIds = [...new Set(chunkList.map((c: { source_id: string }) => c.source_id))]
@@ -47,6 +49,14 @@ export async function POST(req: NextRequest) {
         }
 
         controller.enqueue(encoder.encode(sseMessage({ type: 'sources', sources })))
+
+        if (contents.length > 0 && fullAnswer !== OUT_OF_SCOPE_MESSAGE) {
+          const suggestions = await generateSuggestions(question, fullAnswer, contents)
+          if (suggestions.length > 0) {
+            controller.enqueue(encoder.encode(sseMessage({ type: 'suggestions', suggestions })))
+          }
+        }
+
         controller.enqueue(encoder.encode(sseMessage({ type: 'done' })))
       } catch (e) {
         console.error('[/api/ask]', e)

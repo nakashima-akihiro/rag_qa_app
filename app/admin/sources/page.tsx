@@ -15,7 +15,7 @@ type ImportDetail = {
   videoId: string
   title: string | null
   status: 'imported' | 'skipped' | 'failed'
-  reason: 'already_registered' | 'no_captions' | 'insufficient_credits' | null
+  reason: 'already_registered' | 'no_captions' | 'insufficient_credits' | 'api_error' | null
 }
 
 type ChannelImportResult = {
@@ -48,7 +48,7 @@ export default function SourcesPage() {
   // 単一動画
   const [ytVideoUrl, setYtVideoUrl] = useState('')
   const [ytVideoTitle, setYtVideoTitle] = useState('')
-  const [ytVideoResult, setYtVideoResult] = useState<{ status: string; title: string | null; reason: string | null } | null>(null)
+  const [ytVideoResult, setYtVideoResult] = useState<{ status: string; title: string | null; reason: 'no_captions' | 'insufficient_credits' | 'api_error' | null } | null>(null)
   const [ytVideoError, setYtVideoError] = useState<string | null>(null)
   const [isYtVideoLoading, setIsYtVideoLoading] = useState(false)
   // チャンネル一括
@@ -316,6 +316,7 @@ export default function SourcesPage() {
                       {ytVideoResult.status === 'skipped' && 'この動画はすでに登録済みです'}
                       {ytVideoResult.status === 'failed' && ytVideoResult.reason === 'no_captions' && '字幕が見つかりませんでした'}
                       {ytVideoResult.status === 'failed' && ytVideoResult.reason === 'insufficient_credits' && 'クレジットが不足しています'}
+                      {ytVideoResult.status === 'failed' && ytVideoResult.reason === 'api_error' && 'APIキーが無効です。TRANSCRIPT_API_KEYを確認してください'}
                       {ytVideoResult.status === 'failed' && ytVideoResult.reason === null && 'インポートに失敗しました'}
                     </div>
                   ) : null}

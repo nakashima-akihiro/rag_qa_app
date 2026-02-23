@@ -14,6 +14,7 @@ export default function Home() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<string | null>(null)
   const [sources, setSources] = useState<{ id: string; title: string; url: string | null }[]>([])
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -33,19 +34,20 @@ export default function Home() {
     }
   }, [answer])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!question.trim()) return
+  const submitQuestion = (q: string) => {
+    if (!q.trim()) return
 
+    setQuestion(q)
     setAnswer('')
     setSources([])
+    setSuggestions([])
     setError(null)
 
     startTransition(async () => {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question: q }),
       })
 
       if (!res.ok) {
@@ -79,12 +81,15 @@ export default function Home() {
                   type: string
                   delta?: string
                   sources?: { id: string; title: string; url: string | null }[]
+                  suggestions?: string[]
                   error?: string
                 }
                 if (data.type === 'text' && data.delta) {
                   setAnswer(prev => (prev ?? '') + data.delta)
                 } else if (data.type === 'sources' && data.sources) {
                   setSources(data.sources)
+                } else if (data.type === 'suggestions' && data.suggestions) {
+                  setSuggestions(data.suggestions)
                 } else if (data.type === 'error' && data.error) {
                   setError(data.error)
                   setAnswer(null)
@@ -100,6 +105,11 @@ export default function Home() {
         setAnswer(null)
       }
     })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    submitQuestion(question)
   }
 
   return (
@@ -229,6 +239,32 @@ export default function Home() {
                   </ul>
                 </div>
               ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {/* 関連質問サジェスト */}
+        {suggestions.length > 0 && !isPending ? (
+          <div className="mt-4">
+            <p className="text-xs font-semibold mb-2" style={{ color: '#7aaabf' }}>次に聞く</p>
+            <div
+              className="flex flex-col gap-2"
+            >
+              {suggestions.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => submitQuestion(s)}
+                  className="text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                  style={{
+                    background: '#ffffff',
+                    color: '#0d1e2a',
+                    border: '1px solid #c0d8e8',
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
         ) : null}
