@@ -7,7 +7,7 @@ function basicAuth(req: NextRequest): NextResponse | null {
   if (authHeader) {
     const [scheme, encoded] = authHeader.split(' ')
     if (scheme === 'Basic' && encoded) {
-      const decoded = Buffer.from(encoded, 'base64').toString('utf-8')
+      const decoded = atob(encoded)
       const [user, pass] = decoded.split(':')
       const expectedUser = process.env.BASIC_AUTH_USER ?? 'nakashima'
       const expectedPass = process.env.BASIC_AUTH_PASSWORD ?? 'akkknrsyyy'
